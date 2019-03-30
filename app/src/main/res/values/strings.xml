@@ -1,0 +1,7 @@
+<resources>
+    <string name="app_name">Chat Server</string>
+    <string name="textview">TextView</string>
+    <string name="desc">Desc..</string>
+    <string name="todo">TODO</string>
+    <string name="description">Description..</string>
+</resources>
