@@ -39,7 +39,7 @@ public class ChatArrayAdapter extends ArrayAdapter<ChatMessage> {
         ChatMessage chatMessageObj = getItem(position);
         View row = convertView;
         LayoutInflater inflater = (LayoutInflater) this.getContext().getSystemService(Context.LAYOUT_INFLATER_SERVICE);
-        if (chatMessageObj.left) {
+        if (chatMessageObj.right) {
             row = inflater.inflate(R.layout.right, parent, false);
         }else{
             row = inflater.inflate(R.layout.left, parent, false);

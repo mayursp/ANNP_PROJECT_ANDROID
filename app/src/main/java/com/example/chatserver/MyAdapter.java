@@ -14,13 +14,14 @@ public class MyAdapter extends ArrayAdapter<String> {
 
     int[] contimg;
     String[] contname;
-    String[] contdesc;
+    String[] contmno;
     Context mContext;
-    public MyAdapter(@NonNull Context context, int[] imgid,String[] name) {
+    public MyAdapter(@NonNull Context context, int[] imgid,String[] name,String[] mno) {
         super(context, R.layout.mainscreenlayout);
         this.contname = name;
         this.contimg = imgid;
         this.mContext = context;
+        this.contmno = mno;
     }
 
     @Override

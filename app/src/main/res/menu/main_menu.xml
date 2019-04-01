@@ -4,7 +4,7 @@
 
 
     <item
-        android:id="@+id/newchat"
+        android:id="@+id/refresh"
         android:title="New Chat"
         app:showAsAction="never" />
 
