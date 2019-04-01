@@ -4,4 +4,11 @@
     <string name="desc">Desc..</string>
     <string name="todo">TODO</string>
     <string name="description">Description..</string>
+    <string name="uname">username</string>
+    <string name="password">password</string>
+    <string name="Login">Login</string>
+    <string name="Send">Send</string>
+    <string name="enteryourmsg">Enter your message...</string>
+
+
 </resources>

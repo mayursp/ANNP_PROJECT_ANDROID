@@ -9,7 +9,8 @@
         android:roundIcon="@mipmap/ic_launcher_main_round"
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
-        <activity android:name=".ChatScreen"></activity>
+        <activity android:name=".LoginActivity"></activity>
+        <activity android:name=".ChatScreen" />
         <activity android:name=".SettingScreen" />
         <activity android:name=".MainScreen" />
         <activity android:name=".SplashScreen">
