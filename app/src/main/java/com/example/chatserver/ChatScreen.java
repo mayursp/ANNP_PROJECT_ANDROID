@@ -5,15 +5,16 @@ import android.content.Intent;
 import android.database.DataSetObserver;
 import android.media.MediaPlayer;
 import android.media.MediaRecorder;
+import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Environment;
 import android.os.Handler;
 import android.os.Looper;
+import android.provider.MediaStore;
 import android.support.annotation.RequiresApi;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
-import android.support.v7.widget.PopupMenu;
 import android.support.v7.widget.Toolbar;
 import android.text.Editable;
 import android.text.TextWatcher;
@@ -24,12 +25,10 @@ import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.View;
 import android.widget.AbsListView;
-import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.ListView;
-import android.widget.TextView;
 import android.widget.Toast;
 
 import java.io.BufferedInputStream;
@@ -44,6 +43,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.Socket;
+import java.util.Calendar;
 import java.util.StringTokenizer;
 
 public class ChatScreen extends AppCompatActivity {
@@ -54,25 +54,25 @@ public class ChatScreen extends AppCompatActivity {
     static int img;
 
     private MediaRecorder recorder = null;
-    private MediaPlayer player = null;
+    public static MediaPlayer player = null;
     String fileName;
 
     static boolean chatReceiver = true;
     ImageButton btnSend,btnSendAudio;
-    static TextView txtChat;
-    static EditText txtMsg;
+//    static EditText txtMsg;
+    static CustomEditText txtMsg;
     static Socket s1;
     static DataInputStream dis;
     static DataOutputStream dos;
     static String username;
     static Context con;
     static MsgReceiver mr;
-
+    static String audioFilePath;
 
 
 
     public static ChatArrayAdapter chatArrayAdapter;
-    private ListView listView;
+    public static ListView listView;
 //    private EditText chatText;
 //    private ImageButton buttonSend,backbutton;
     private boolean side;
@@ -99,7 +99,26 @@ public class ChatScreen extends AppCompatActivity {
         if (!folder.exists())
             var = folder.mkdir();
         System.out.println(""+var);
-        fileName = Environment.getExternalStorageDirectory() + "/ChatApp/Audio/audiorecordtest.3gp";
+        folder = new File(Environment.getExternalStorageDirectory()
+                + "/ChatApp/Audio/Sent");
+        var = false;
+        if (!folder.exists())
+            var = folder.mkdir();
+        System.out.println(""+var);
+        folder = new File(Environment.getExternalStorageDirectory()
+                + "/ChatApp/Image");
+        var = false;
+        if (!folder.exists())
+            var = folder.mkdir();
+        System.out.println(""+var);
+        folder = new File(Environment.getExternalStorageDirectory()
+                + "/ChatApp/Image/Sent");
+        var = false;
+        if (!folder.exists())
+            var = folder.mkdir();
+        System.out.println(""+var);
+
+        fileName = Environment.getExternalStorageDirectory() + "/ChatApp"; //"/ChatApp/Audio/audiorecordtest.3gp";
 
         Toolbar = (android.support.v7.widget.Toolbar)findViewById(R.id.toolbar);
         //mTextView = (TextView)findViewById(R.id.txtConatctName);
@@ -133,7 +152,43 @@ public class ChatScreen extends AppCompatActivity {
 //            btnPlayFile = (Button) findViewById(R.id.btnPlayFile);
 //            txtChat = (TextView) findViewById(R.id.txtChat);
 
-            txtMsg = (EditText) findViewById(R.id.txtMsg);
+            txtMsg = (CustomEditText) findViewById(R.id.txtMsg);
+
+
+
+            txtMsg.setDrawableClickListener(new DrawableClickListener() {
+                public void onClick(DrawablePosition target) {
+                    switch (target) {
+                        case LEFT:
+                            Toast.makeText(ChatScreen.this,getDateTimeStamp(),Toast.LENGTH_SHORT).show();
+                            Intent takePicture = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+                            Uri uri  = Uri.parse("/raw//storage/emulated/0/photo.jpg");
+//                            Uri uri  = Uri.parse(Environment.getExternalStorageDirectory()+"photo.jpg");
+                            takePicture.putExtra(android.provider.MediaStore.EXTRA_OUTPUT, uri);
+                            startActivityForResult(takePicture, 0);//zero can be replaced with any action code
+
+                            break;
+                        case RIGHT:
+                            Toast.makeText(ChatScreen.this,"RIGHT",Toast.LENGTH_SHORT).show();
+                            Intent pickPhoto = new Intent(Intent.ACTION_PICK,
+                                    android.provider.MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
+                            startActivityForResult(pickPhoto , 1);//one can be replaced with any action code
+
+                            break;
+                        case BOTTOM:
+                            Toast.makeText(ChatScreen.this,"BOTTOM",Toast.LENGTH_SHORT).show();
+                            break;
+                        case TOP:
+                            Toast.makeText(ChatScreen.this,"TOP",Toast.LENGTH_SHORT).show();
+                            break;
+                        default:
+                            Toast.makeText(ChatScreen.this,"Default",Toast.LENGTH_SHORT).show();
+                    }
+                }
+
+            });
+
+
 
             try{
                 if(LoginActivity.user.getS() != null){
@@ -212,24 +267,29 @@ public class ChatScreen extends AppCompatActivity {
 
                 @Override
                 public boolean onTouch(View view, MotionEvent motionEvent) {
+
                     switch(motionEvent.getAction()) {
                         case MotionEvent.ACTION_DOWN:
                             // PRESSED
                             Toast.makeText(ChatScreen.this,"recording",Toast.LENGTH_SHORT).show();
-                            startRecording();
+                            //btnSendAudio.setBackgroundResource(R.drawable.buttontry);
+                            btnSendAudio.setBackgroundResource(R.drawable.ic_mic_black_96dp);
+                            audioFilePath = fileName+"/Audio/sent/"+"AUD"+getDateTimeStamp()+".3gp";
+                            startRecording(audioFilePath);
                             return true; // if you want to handle the touch event
                         case MotionEvent.ACTION_UP:
                             // RELEASED
                             Toast.makeText(ChatScreen.this,"recording stopped",Toast.LENGTH_SHORT).show();
+                            btnSendAudio.setBackgroundResource(R.drawable.button);
                             stopRecording();
                             try{
-                                File file = new File(fileName);
-                                new FileSendTask().execute("192.168.43.142",LoginActivity.user.getMno(),username,""+file.length(),file.getName());
+                                File file = new File(audioFilePath);
+                                new FileSendTask().execute("192.168.43.142",LoginActivity.user.getMno(),username,""+file.length(),"Audio/sent/"+file.getName(),"Audio");
                                 //new FileSendTask().execute("",username,""+fi.length(),"Audio/audiorecordtest.3gp");
 //                                    sendFile();
                                 Log.d("GAYUU","msg:"+txtMsg.getText());
                                 //setChatText("me: Sent Audio File \n ");
-                                chatArrayAdapter.add(new ChatMessage(true, "File Sent"));
+                                chatArrayAdapter.add(new ChatMessage(true, "Audio", "Audio/Sent/"+file.getName(), "File Sent"));
                             }catch (Exception e){
                                 Toast.makeText(ChatScreen.this,"erroraiyaaa:"+e,Toast.LENGTH_LONG).show();
                             }
@@ -324,16 +384,64 @@ public class ChatScreen extends AppCompatActivity {
 //        setSupportActionBar(Toolbar);
     }
 
+    protected void onActivityResult(int requestCode, int resultCode, Intent imageReturnedIntent) {
+        super.onActivityResult(requestCode, resultCode, imageReturnedIntent);
+        switch(requestCode) {
+            case 0:
+                if(resultCode == RESULT_OK){
+
+                    String path = Environment.getExternalStorageDirectory()+"/photo.jpg";
+                    Toast.makeText(ChatScreen.con,""+path,Toast.LENGTH_SHORT).show();
+                    chatArrayAdapter.add(new ChatMessage(true, "Image", ""+path, "File Sent"));
+
+                    //Uri selectedImage = imageReturnedIntent.getData();
+//                    if(selectedImage==null){
+//                        Toast.makeText(ChatScreen.con,"isnull",Toast.LENGTH_SHORT).show();
+//                    }
+                    //Toast.makeText(ChatScreen.con,""+selectedImage.getPath(),Toast.LENGTH_SHORT).show();
+                    //File fi = new File(selectedImage.getPath());
+                    //chatArrayAdapter.add(new ChatMessage(true, "Image", ""+selectedImage.getPath(),"Image 6e"));
+
+                    //imageview.setImageURI(selectedImage);
+                }
+
+                break;
+            case 1:
+                if(resultCode == RESULT_OK){
+                    Uri selectedImage = imageReturnedIntent.getData();
+                    String path = selectedImage.getPath();
+                    path = path.replaceAll("/raw/","");
+                    //File fi = new File(selectedImage.getPath());
+                    //"Image/sent/"+file.getName()
+                    Toast.makeText(ChatScreen.con,""+path,Toast.LENGTH_SHORT).show();
+                    File src = new File(path);
+                    String extension = src.getName().substring(src.getName().lastIndexOf("."));
+                    File dst = new File(fileName+"/Image/sent/IMG"+getDateTimeStamp()+extension);
+                    try{
+                        copy(src,dst);
+                    }catch (Exception e){
+                        Log.d("Exxx",""+e);
+                    }
+
+                    new FileSendTask().execute("192.168.43.142",LoginActivity.user.getMno(),username,""+dst.length(),"Image/sent/"+dst.getName(),"Image");
+                    chatArrayAdapter.add(new ChatMessage(true, "Image", "Image/sent/"+dst.getName(), "File Sent"));
+
+                    //Toast.makeText(ChatScreen.con,""+Environment.getExternalStorageDirectory(),Toast.LENGTH_SHORT).show();
+//                    imageview.setImageURI(selectedImage);
+                }
+                break;
+        }
+    }
 
     private boolean sendChatMessageRight() {
         side=true;
-        chatArrayAdapter.add(new ChatMessage(side, txtMsg.getText().toString()));
+        chatArrayAdapter.add(new ChatMessage(side, "Chat", txtMsg.getText().toString()));
         txtMsg.setText("");
         return true;
     }
     public boolean sendChatMessageLeft() {
         side=false;
-        chatArrayAdapter.add(new ChatMessage(side, txtMsg.getText().toString()));
+        chatArrayAdapter.add(new ChatMessage(side, "Chat", txtMsg.getText().toString()));
         txtMsg.setText("");
         return true;
     }
@@ -397,27 +505,12 @@ public class ChatScreen extends AppCompatActivity {
         }
     }
 
-    public void startPlaying() {
-        player = new MediaPlayer();
-        try {
-            player.setDataSource(fileName);
-            player.prepare();
-            player.start();
-        } catch (IOException e) {
-            Log.e("aaaaaaaa", "prepare() failed"+e);
-        }
-    }
 
-    public void stopPlaying() {
-        player.release();
-        player = null;
-    }
-
-    public void startRecording() {
+    public void startRecording(String fileN) {
         recorder = new MediaRecorder();
         recorder.setAudioSource(MediaRecorder.AudioSource.MIC);
         recorder.setOutputFormat(MediaRecorder.OutputFormat.THREE_GPP);
-        recorder.setOutputFile(fileName);
+        recorder.setOutputFile(fileN);
         recorder.setAudioEncoder(MediaRecorder.AudioEncoder.AMR_NB);
 
         try {
@@ -433,6 +526,37 @@ public class ChatScreen extends AppCompatActivity {
         recorder.stop();
         recorder.release();
         recorder = null;
+    }
+
+    public String getDateTimeStamp(){
+        String AM_PM;
+        Calendar cal = Calendar.getInstance();
+        if(cal.get(Calendar.AM_PM)==0){
+            AM_PM = "AM";
+        }else{
+            AM_PM = "PM";
+        }
+        Toast.makeText(ChatScreen.con,""+cal.get(Calendar.DATE)+(cal.get(Calendar.MONTH)+1)+cal.get(Calendar.YEAR),Toast.LENGTH_SHORT).show();
+        return ""+cal.get(Calendar.DATE)+(cal.get(Calendar.MONTH)+1)+cal.get(Calendar.YEAR)+"_"+cal.get(Calendar.HOUR_OF_DAY)+cal.get(Calendar.MINUTE)+cal.get(Calendar.SECOND);
+    }
+
+    public static void copy(File src, File dst) throws IOException {
+        InputStream in = new FileInputStream(src);
+        try {
+            OutputStream out = new FileOutputStream(dst);
+            try {
+                // Transfer bytes from in to out
+                byte[] buf = new byte[1024];
+                int len;
+                while ((len = in.read(buf)) > 0) {
+                    out.write(buf, 0, len);
+                }
+            } finally {
+                out.close();
+            }
+        } finally {
+            in.close();
+        }
     }
 
 }
@@ -461,14 +585,19 @@ class FileSendTask extends AsyncTask<String , Void, Void>
     protected Void doInBackground(String... strs)
     {
         try {
+            StringTokenizer st = new StringTokenizer(strs[4],"/");
+            st.nextToken();
+            st.nextToken();
+            String fname = st.nextToken();
 
-            String request = "$file$%$%"+strs[1]+"%$%"+strs[2]+"%$%"+strs[3]+"%$%"+strs[4];
-            //recipient,filesize,filename
+            String request = "$file$%$%"+strs[1]+"%$%"+strs[2]+"%$%"+strs[3]+"%$%"+strs[5]+"/"+fname;
+
+            //sender,recipient,filesize,filename
             Log.d("recev:",""+request);
             int len = Integer.parseInt(strs[3]);
             ChatScreen.dos.writeUTF(request);
             byte[] filebytes = new byte[len];
-            BufferedInputStream bis = new BufferedInputStream(new FileInputStream(Environment.getExternalStorageDirectory() + "/ChatApp/Audio/"+strs[4]));
+            BufferedInputStream bis = new BufferedInputStream(new FileInputStream(Environment.getExternalStorageDirectory() + "/ChatApp/"+strs[4]));
             bis.read(filebytes, 0, len);
             bis.close();
             OutputStream os = ChatScreen.s1.getOutputStream();
@@ -498,7 +627,12 @@ class FileSendTask extends AsyncTask<String , Void, Void>
         }
         return null;
     }
+
 }
+
+
+
+
 
 class MsgReceiver implements Runnable
 {
@@ -541,7 +675,7 @@ class MsgReceiver implements Runnable
 
                     new Handler(Looper.getMainLooper()).post(new Runnable() {
                         public void run() {
-                            ChatScreen.chatArrayAdapter.add(new ChatMessage(false, temp));
+                            ChatScreen.chatArrayAdapter.add(new ChatMessage(false, "Chat", temp));
                             //ChatScreen.setChatText(temp + "\n");
                         }
                     });
@@ -554,11 +688,12 @@ class MsgReceiver implements Runnable
                     st.nextToken();
                     String sender = st.nextToken();
                     int fileSize = Integer.parseInt(st.nextToken());
-                    String filename = st.nextToken();
+                    final String filename = st.nextToken();
                     //byte[] filebytes = new byte[fileSize];
                     System.out.println("sender:" + sender + ",filename:" + filename + ",size:" + fileSize);
-
-                    if (fileSize < (100 * 1024)) {
+                    st = new StringTokenizer(filename,"/");
+                    final String filetype = st.nextToken();
+                    if (fileSize < (10000 * 1024)) {
                         //ddos.writeUTF("yes");
                         receiveFile(filename, fileSize, s.getInputStream());
                         final String temp = "from:"+sender+"file:"+filename;
@@ -566,11 +701,9 @@ class MsgReceiver implements Runnable
                         new Handler(Looper.getMainLooper()).post(new Runnable() {
                             public void run() {
                                 //ChatScreen.setChatText(temp + "\n");
-                                ChatScreen.chatArrayAdapter.add(new ChatMessage(false, "File Received!"));
+                                ChatScreen.chatArrayAdapter.add(new ChatMessage(false, ""+filetype, ""+filename, "File Received"));
                             }
                         });
-
-
 
                     } else {
                         //ddos.writeUTF("no");
@@ -623,16 +756,10 @@ class MsgReceiver implements Runnable
     public void receiveFile(String filename, int fileSize, InputStream inputStream) throws FileNotFoundException, IOException {
 
         try{
-            File folder = new File(Environment.getExternalStorageDirectory()
-                    + "/ChatApp/Audio");
-            boolean var = false;
-            if (!folder.exists())
-                var = folder.mkdir();
-            System.out.println(""+var);
 
             byte[] filebytes = new byte[fileSize];
             final String saveFile = Environment.getExternalStorageDirectory()
-                    + "/ChatApp/Audio/" + filename;
+                    + "/ChatApp/" + filename;
 
             FileOutputStream fos = new FileOutputStream(saveFile);
             BufferedOutputStream bos = new BufferedOutputStream(fos);
@@ -646,6 +773,8 @@ class MsgReceiver implements Runnable
                 curr += bytesRead;
             }
             bos.write(filebytes, 0, filebytes.length);
+            bos.flush();
+            bos.close();
             System.out.println("File downloaded..." + filebytes.length);
 
 

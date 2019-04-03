@@ -52,6 +52,7 @@ public class LoginActivity extends AppCompatActivity {
                 ActivityCompat.requestPermissions(LoginActivity.this,
                         new String[]{Manifest.permission.READ_CONTACTS,
                                 Manifest.permission.WRITE_EXTERNAL_STORAGE,
+                                Manifest.permission.READ_EXTERNAL_STORAGE,
                                 Manifest.permission.RECORD_AUDIO},
                         12);//MY_PERMISSIONS_REQUEST_READ_CONTACTS);
 

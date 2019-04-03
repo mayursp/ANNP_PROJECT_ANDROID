@@ -6,6 +6,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.database.Cursor;
 import android.database.MatrixCursor;
+import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Environment;
 import android.os.Handler;
@@ -131,19 +132,35 @@ public class MainScreen extends AppCompatActivity {
         switch (item.getItemId()) {
             case R.id.refresh:
                 Toast.makeText(this,"Refreshing...",Toast.LENGTH_SHORT).show();
-
                 syncContacts();
-
                 return true;
-            case R.id.setting:
-                Toast.makeText(this,"Select Setting",Toast.LENGTH_SHORT).show();
-                Intent m2 = new Intent(MainScreen.this, SettingScreen.class);
+            case R.id.logout:
+                Toast.makeText(this,"Logging Out...",Toast.LENGTH_SHORT).show();
+                new LogoutSendTask().execute("");
+                Intent m2 = new Intent(MainScreen.this, LoginActivity.class);
                 startActivity(m2);
                 return true;
             default:
                 return super.onOptionsItemSelected(item);
         }
     }
+
+    class LogoutSendTask extends AsyncTask<String , Void, Void>
+    {
+        @Override
+        protected Void doInBackground(String... strs)
+        {
+            try {
+                String request = "$logout$";
+                ChatScreen.dos.writeUTF(request);
+                Log.d("LogoutSendTaskTry:",""+request);
+            } catch (Exception ex) {
+                Log.d("LogoutSendTaskCatch:",""+ex);
+            }
+            return null;
+        }
+    }
+
 
     public void getSyncedContacts(){
 
