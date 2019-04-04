@@ -3,6 +3,10 @@ package com.example.chatserver;
 import android.content.Context;
 import android.content.Intent;
 import android.database.DataSetObserver;
+import android.media.AudioFormat;
+import android.media.AudioManager;
+import android.media.AudioRecord;
+import android.media.AudioTrack;
 import android.media.MediaPlayer;
 import android.media.MediaRecorder;
 import android.net.Uri;
@@ -42,7 +46,11 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.net.DatagramPacket;
+import java.net.DatagramSocket;
 import java.net.Socket;
+import java.net.SocketException;
+import java.net.UnknownHostException;
 import java.util.Calendar;
 import java.util.StringTokenizer;
 
@@ -68,6 +76,16 @@ public class ChatScreen extends AppCompatActivity {
     static Context con;
     static MsgReceiver mr;
     static String audioFilePath;
+
+
+    private static final String LOG_TAG = "AudioCall";
+    private static final int SAMPLE_RATE = 8000; // Hertz
+    private static final int SAMPLE_INTERVAL = 20; // Milliseconds
+    private static final int SAMPLE_SIZE = 2; // Bytes
+    private static final int BUF_SIZE = SAMPLE_INTERVAL * SAMPLE_INTERVAL * SAMPLE_SIZE * 8; //Bytes
+    private static boolean mic = false; // Enable mic?
+    public static boolean speakers = false; // Enable speakers?
+
 
 
 
@@ -462,9 +480,17 @@ public class ChatScreen extends AppCompatActivity {
                 Toast.makeText(this,"Select VideoCall",Toast.LENGTH_SHORT).show();
 //                Intent m1 = new Intent(ChatScreen.this, SettingScreen.class);
 //                startActivity(m1);
+
+                mic = false;
+                speakers = false;
+
                 return true;
             case R.id.call:
                 Toast.makeText(this,"Select Call",Toast.LENGTH_SHORT).show();
+
+                startMic();
+
+
 //                Intent m1 = new Intent(ChatScreen.this, SettingScreen.class);
 //                startActivity(m1);
                 return true;
@@ -559,6 +585,76 @@ public class ChatScreen extends AppCompatActivity {
         }
     }
 
+
+    public void startMic() {
+        // Creates the thread for capturing and transmitting audio
+        mic = true;
+        Thread thread = new Thread(new Runnable() {
+
+            @Override
+            public void run() {
+                // Create an instance of the AudioRecord class
+
+                Log.i(LOG_TAG, "Send thread started. Thread id: " + Thread.currentThread().getId());
+                AudioRecord audioRecorder = new AudioRecord (MediaRecorder.AudioSource.MIC, SAMPLE_RATE,
+                        AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT,
+                        AudioRecord.getMinBufferSize(SAMPLE_RATE, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT)*10);
+                int bytes_read = 0;
+                int bytes_sent = 0;
+                byte[] buf = new byte[BUF_SIZE];
+                try {
+                    // Create a socket and start recording
+                    dos.writeUTF("$call$%$%"+LoginActivity.user.getMno()+"%$%"+username+"%$%"+BUF_SIZE);
+                    Log.i(LOG_TAG, "$call$%$%"+LoginActivity.user.getMno()+"%$%"+username+"%$%"+BUF_SIZE);
+                    Log.i(LOG_TAG, "Packet destination: " + s1.toString());
+                    audioRecorder.startRecording();
+                    while(mic) {
+                        // Capture audio from the mic and transmit it
+                        bytes_read = audioRecorder.read(buf, 0, BUF_SIZE);
+
+                        s1.getOutputStream().write(buf);
+
+//                        DatagramPacket packet = new DatagramPacket(buf, bytes_read, address, port);
+//                        socket.send(packet);
+
+                        bytes_sent += bytes_read;
+                        Log.i(LOG_TAG, "Total bytes sent: " + bytes_sent);
+                        Thread.sleep(SAMPLE_INTERVAL, 0);
+                    }
+                    // Stop recording and release resources
+                    audioRecorder.stop();
+                    audioRecorder.release();
+                    mic = false;
+                    return;
+                }
+                catch(InterruptedException e) {
+
+                    Log.e(LOG_TAG, "InterruptedException: " + e.toString());
+                    mic = false;
+                }
+                catch(SocketException e) {
+
+                    Log.e(LOG_TAG, "SocketException: " + e.toString());
+                    mic = false;
+                }
+                catch(UnknownHostException e) {
+
+                    Log.e(LOG_TAG, "UnknownHostException: " + e.toString());
+                    mic = false;
+                }
+                catch(IOException e) {
+
+                    Log.e(LOG_TAG, "IOException: " + e.toString());
+                    mic = false;
+                }
+            }
+        });
+        thread.start();
+    }
+
+
+
+
 }
 
 
@@ -643,6 +739,13 @@ class MsgReceiver implements Runnable
     boolean isloggedin;
     Thread t;
 
+    private static final String LOG_TAG = "AudioCall";
+    private static final int SAMPLE_RATE = 8000; // Hertz
+    private static final int SAMPLE_INTERVAL = 20; // Milliseconds
+    private static final int SAMPLE_SIZE = 2; // Bytes
+    private static final int BUF_SIZE = SAMPLE_INTERVAL * SAMPLE_INTERVAL * SAMPLE_SIZE * 8; //Bytes
+
+
     // constructor
     public MsgReceiver(Socket s,Context c) throws IOException {
         this.dis = new DataInputStream(s.getInputStream());
@@ -711,6 +814,14 @@ class MsgReceiver implements Runnable
                     }
                 }
 
+                if (received.contains("$call$")) {
+                    StringTokenizer st = new StringTokenizer(received, "%$%");
+                    st.nextToken();
+                    String sender = st.nextToken();
+                    System.out.println("sender:" + sender);
+                    receiveCall(s.getInputStream());
+                }
+
 //                if (received.contains("$call$")) {
 //                    StringTokenizer st = new StringTokenizer(received, "%$%");
 //                    st.nextToken();
@@ -753,6 +864,8 @@ class MsgReceiver implements Runnable
 //        }
     }
 
+
+
     public void receiveFile(String filename, int fileSize, InputStream inputStream) throws FileNotFoundException, IOException {
 
         try{
@@ -783,6 +896,42 @@ class MsgReceiver implements Runnable
 
         }catch (Exception e){
             System.out.println("ahan"+e);
+        }
+    }
+
+    public void receiveCall(InputStream inputStream){
+
+        Log.i(LOG_TAG, "Receive thread started. Thread id: " + Thread.currentThread().getId());
+        ChatScreen.speakers = true;
+        AudioTrack track = new AudioTrack(AudioManager.STREAM_MUSIC, SAMPLE_RATE, AudioFormat.CHANNEL_OUT_MONO,
+                AudioFormat.ENCODING_PCM_16BIT, BUF_SIZE, AudioTrack.MODE_STREAM);
+
+        track.play();
+        try {
+            // Define a socket to receive the audio
+            byte[] buf = new byte[BUF_SIZE];
+            while(ChatScreen.speakers) {
+                // Play back the audio received from packets
+                inputStream.read(buf);
+                Log.i(LOG_TAG, "Packet received: " + buf.length);
+                track.write(buf, 0, BUF_SIZE);
+            }
+            // Stop playing back and release resources
+            track.stop();
+            track.flush();
+            track.release();
+            ChatScreen.speakers = false;
+            return;
+        }
+        catch(SocketException e) {
+
+            Log.e(LOG_TAG, "SocketException: " + e.toString());
+            ChatScreen.speakers = false;
+        }
+        catch(IOException e) {
+
+            Log.e(LOG_TAG, "IOException: " + e.toString());
+            ChatScreen.speakers = false;
         }
     }
 }

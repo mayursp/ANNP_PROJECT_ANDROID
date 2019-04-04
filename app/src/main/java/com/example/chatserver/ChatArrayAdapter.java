@@ -16,6 +16,7 @@ import android.widget.TextView;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.List;
 
 public class ChatArrayAdapter extends ArrayAdapter<ChatMessage> {
@@ -154,5 +155,16 @@ public class ChatArrayAdapter extends ArrayAdapter<ChatMessage> {
     public void stopPlaying() {
         player.release();
         player = null;
+    }
+
+    public String getTimeStamp(){
+        String AM_PM;
+        Calendar cal = Calendar.getInstance();
+        if(cal.get(Calendar.AM_PM)==0){
+            AM_PM = "AM";
+        }else{
+            AM_PM = "PM";
+        }
+        return ""+cal.get(Calendar.HOUR_OF_DAY)+":"+cal.get(Calendar.MINUTE)+" "+AM_PM;
     }
 }

@@ -54,15 +54,20 @@ public class MainScreen extends AppCompatActivity {
     String[] mno = {"1","2","3"};
 
     Toolbar mToolbar;
-    ListView mListView;
+    static ListView mListView;
     static MyContact[] syncedContacts;
     static Context context;
+    static MatrixCursor cursor;
+    static Bundle abc;
+    static boolean kb = false;
 
     @SuppressLint("ResourceType")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main_screen);
+
+        abc = savedInstanceState;
 
         context = MainScreen.this;
         mToolbar = (android.support.v7.widget.Toolbar) findViewById(R.id.toolbar);
@@ -166,7 +171,7 @@ public class MainScreen extends AppCompatActivity {
 
         //Cursor cursor = getContentResolver().query(ContactsContract.CommonDataKinds.Phone.CONTENT_URI,null,null,null,null);
         String[] columns = new String[] { "name", "mno", "_id"};
-        MatrixCursor cursor = new MatrixCursor(columns);
+        MainScreen.cursor = new MatrixCursor(columns);
         startManagingCursor(cursor);
 
         for (int i=0;i<MainScreen.syncedContacts.length;i++){
@@ -181,6 +186,20 @@ public class MainScreen extends AppCompatActivity {
 
     }
 
+    @Override
+    protected void onResume() {
+        super.onResume();
+        if(kb){
+            onCreate(abc);
+            kb = false;
+        }
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        kb = true;
+    }
 
     public void syncContacts(){
         //send file
