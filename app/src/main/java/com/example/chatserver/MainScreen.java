@@ -49,8 +49,8 @@ import java.net.Socket;
 
 public class MainScreen extends AppCompatActivity {
 
-    int[] imageid = {R.drawable.one,R.drawable.one,R.drawable.one};
-    String[] name = {"tapaswi","mayur","sarthak"};
+    int[] imageid = {R.drawable.one,R.drawable.two,R.drawable.three,R.drawable.four};
+    String[] name = {"Tapaswi","Mayur","Sarthak","Yash"};
     String[] mno = {"1","2","3"};
 
     Toolbar mToolbar;
